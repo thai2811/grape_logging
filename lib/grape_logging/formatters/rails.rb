@@ -3,12 +3,15 @@ require 'rack/utils'
 module GrapeLogging
   module Formatters
     class Rails
+      def initialize(uuid)
+        @uuid = uuid
+      end
 
       def call(severity, datetime, _, data)
         if data.is_a?(String)
-          "#{severity[0..0]} [#{datetime}] #{severity} -- : #{data}\n"
+          "#{severity[0..0]} [#{datetime}] [#{@uuid}] #{severity} -- : #{data}\n"
         elsif data.is_a?(Exception)
-          "#{severity[0..0]} [#{datetime}] #{severity} -- : #{format_exception(data)}\n"
+          "#{severity[0..0]} [#{datetime}] [#{@uuid}] #{severity} -- : #{format_exception(data)}\n"
         elsif data.is_a?(Hash)
           format_hash(data)
         else
@@ -41,13 +44,13 @@ module GrapeLogging
         view_time  = hash[:time] && hash[:time][:view]  && hash[:time][:view].round(2)
         db_time    = hash[:time] && hash[:time][:db]    && hash[:time][:db].round(2)
 
-        additions << "Views: #{view_time}ms" if view_time
-        additions << "DB: #{db_time}ms"      if db_time
+        additions << "[#{@uuid}] Views: #{view_time}ms" if view_time
+        additions << "[#{@uuid}] DB: #{db_time}ms"      if db_time
 
-        message << "  Parameters: #{params.inspect}\n" if params
+        message << "[#{@uuid}]  Parameters: #{params.inspect}\n" if params
 
-        message << "Completed #{status} #{::Rack::Utils::HTTP_STATUS_CODES[status]} in #{total_time}ms"
-        message << " (#{additions.join(" | ".freeze)})" if additions.size > 0
+        message << "[#{@uuid}] Completed #{status} #{::Rack::Utils::HTTP_STATUS_CODES[status]} in #{total_time}ms"
+        message << "[#{@uuid}] (#{additions.join(" | ".freeze)})" if additions.size > 0
         message << "\n"
         message << "\n" if defined?(::Rails.env) && ::Rails.env.development?
 
